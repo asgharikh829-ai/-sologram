@@ -114,6 +114,9 @@ dependencies {
     coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.1.5'
 }
 
+def sologramApiId = System.getenv("SLOGRAM_API_ID") ?: "0"
+def sologramApiHash = System.getenv("SLOGRAM_API_HASH") ?: ""
+
 android {
     compileSdkVersion 36
     buildToolsVersion '36.0.0'
@@ -145,6 +148,9 @@ android {
     }
 
     defaultConfig {
+        buildConfigField "int", "SOLOGRAM_API_ID", sologramApiId
+        buildConfigField "String", "SOLOGRAM_API_HASH", "\"${sologramApiHash}\""
+
         minSdkVersion 23
         targetSdkVersion 36
 
