@@ -34,12 +34,14 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
-
       - name: Install Android build dependencies
         run: |
-          yes | sdkmanager --licenses
+          SDKMANAGER="$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager | sort -V | tail -n 1)"
+          if [ -z "$SDKMANAGER" ]; then
+            echo "Android sdkmanager was not found on the runner"
+            exit 1
+          fi
+          yes | "$SDKMANAGER" --licenses
           sdkmanager --install \
             "platform-tools" \
             "platforms;android-36" \
