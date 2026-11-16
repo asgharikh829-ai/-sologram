@@ -47,18 +47,14 @@ android {
     }
 
     signingConfigs {
-        debug {
-            storeFile file("../TMessagesProj/config/release.keystore")
-            storePassword RELEASE_STORE_PASSWORD
-            keyAlias RELEASE_KEY_ALIAS
-            keyPassword RELEASE_KEY_PASSWORD
-        }
-
         release {
-            storeFile file("../TMessagesProj/config/release.keystore")
-            storePassword RELEASE_STORE_PASSWORD
-            keyAlias RELEASE_KEY_ALIAS
-            keyPassword RELEASE_KEY_PASSWORD
+            def sologramKeystore = System.getenv("SLOGRAM_KEYSTORE_PATH")
+            if (sologramKeystore != null && !sologramKeystore.isEmpty()) {
+                storeFile file(sologramKeystore)
+                storePassword System.getenv("SLOGRAM_KEYSTORE_PASSWORD")
+                keyAlias System.getenv("SLOGRAM_KEY_ALIAS")
+                keyPassword System.getenv("SLOGRAM_KEY_PASSWORD")
+            }
         }
     }
 
@@ -72,7 +68,6 @@ android {
         debug {
             debuggable true
             jniDebuggable true
-            signingConfig signingConfigs.debug
             applicationIdSuffix ".beta"
             minifyEnabled false
             shrinkResources false
@@ -84,7 +79,7 @@ android {
         standalone {
             debuggable false
             jniDebuggable false
-            signingConfig signingConfigs.release
+            if (System.getenv("SLOGRAM_KEYSTORE_PATH")) signingConfig signingConfigs.release
             applicationIdSuffix ".web"
             minifyEnabled true
             shrinkResources true
@@ -194,4 +189,3 @@ android {
     }
 }
 
-apply plugin: 'com.google.gms.google-services'
