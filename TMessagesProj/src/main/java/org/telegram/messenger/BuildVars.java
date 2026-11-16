@@ -27,8 +27,8 @@ public class BuildVars {
     public static String BUILD_VERSION_STRING = BuildConfig.BUILD_VERSION_STRING;
 
     // Injected at build time from GitHub Actions secrets; never commit API credentials.
-    public static int APP_ID = Integer.parseInt(System.getenv().getOrDefault("SLOGRAM_API_ID", "0"));
-    public static String APP_HASH = System.getenv().getOrDefault("SLOGRAM_API_HASH", "");
+    public static int APP_ID = BuildConfig.SOLOGRAM_API_ID;
+    public static String APP_HASH = BuildConfig.SOLOGRAM_API_HASH;
 
     // SafetyNet key for Google Identity SDK, set it to empty to disable
     public static String SAFETYNET_KEY = "";
