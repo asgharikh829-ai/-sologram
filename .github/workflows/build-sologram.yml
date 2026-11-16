@@ -34,6 +34,9 @@ jobs:
           distribution: temurin
           java-version: '17'
 
+      - name: Set up Gradle cache
+        uses: gradle/actions/setup-gradle@v4
+
       - name: Install Android build dependencies
         run: |
           SDKMANAGER="$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager | sort -V | tail -n 1)"
@@ -48,6 +51,17 @@ jobs:
             "build-tools;36.0.0" \
             "ndk;27.2.12479018" \
             "cmake;3.22.1"
+
+      - name: Restore Android native build cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            TMessagesProj/.cxx
+            TMessagesProj/build/intermediates/cxx
+            TMessagesProj/build/intermediates/ndkBuild
+          key: sologram-native-${{ runner.os }}-ndk27-cmake322-${{ hashFiles('TMessagesProj/jni/**', 'TMessagesProj/build.gradle', 'gradle.properties') }}
+          restore-keys: |
+            sologram-native-${{ runner.os }}-ndk27-cmake322-
 
       - name: Create temporary Sologram signing key
         shell: bash
@@ -70,7 +84,7 @@ jobs:
       - name: Build Sologram release APK
         run: |
           chmod +x ./gradlew
-          ./gradlew --no-daemon --max-workers=2 \
+          ./gradlew --no-daemon --max-workers=2 --build-cache \
             :TMessagesProj_App:assembleAfatRelease \
             --stacktrace
 
