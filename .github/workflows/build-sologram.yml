@@ -16,6 +16,8 @@ jobs:
     timeout-minutes: 180
     env:
       CMAKE_BUILD_PARALLEL_LEVEL: 2
+      SLOGRAM_API_ID: ${{ secrets.SLOGRAM_API_ID }}
+      SLOGRAM_API_HASH: ${{ secrets.SLOGRAM_API_HASH }}
     steps:
       - name: Free runner disk space
         run: |
