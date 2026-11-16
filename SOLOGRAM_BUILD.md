@@ -28,3 +28,7 @@ The Telegram API ID/hash in `TMessagesProj/src/main/java/org/telegram/messenger/
 ## License
 
 This project is derived from Telegram for Android. Preserve the upstream GNU GPL v2-or-later licensing and provide the corresponding source when distributing modified binaries.
+
+## API credentials
+
+Configure `SLOGRAM_API_ID` and `SLOGRAM_API_HASH` as GitHub Actions repository secrets before running the Android APK workflow. The credentials are injected at build time and are not committed to source control.
