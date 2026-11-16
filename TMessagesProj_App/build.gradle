@@ -91,7 +91,7 @@ android {
         release {
             debuggable false
             jniDebuggable false
-            signingConfig signingConfigs.release
+            if (System.getenv("SLOGRAM_KEYSTORE_PATH")) signingConfig signingConfigs.release
             minifyEnabled true
             shrinkResources true
             multiDexEnabled true
