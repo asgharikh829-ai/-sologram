@@ -481,6 +481,9 @@ public class DialogsSearchAdapter extends RecyclerListView.SelectionAdapter {
                         for (int a = 0; a < res.messages.size(); a++) {
                             TLRPC.Message message = res.messages.get(a);
                             long did = MessageObject.getDialogId(message);
+                            if (HiddenChatsController.isHidden(currentAccount, did)) {
+                                continue;
+                            }
                             int maxId = MessagesController.getInstance(currentAccount).deletedHistory.get(did);
                             if (maxId != 0 && message.id <= maxId) {
                                 continue;
@@ -639,6 +642,9 @@ public class DialogsSearchAdapter extends RecyclerListView.SelectionAdapter {
                         for (int a = 0; a < res.messages.size(); a++) {
                             TLRPC.Message message = res.messages.get(a);
                             long did = MessageObject.getDialogId(message);
+                            if (HiddenChatsController.isHidden(currentAccount, did)) {
+                                continue;
+                            }
                             int maxId = MessagesController.getInstance(currentAccount).deletedHistory.get(did);
                             if (maxId != 0 && message.id <= maxId) {
                                 continue;
