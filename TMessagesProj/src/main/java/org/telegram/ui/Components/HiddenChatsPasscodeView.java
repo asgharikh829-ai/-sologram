@@ -11,11 +11,17 @@ public final class HiddenChatsPasscodeView extends PasscodeView {
     private boolean passcodeAccepted;
     private boolean fingerprintAccepted;
     private boolean authenticated;
+    private boolean lastAttemptFingerprint;
 
     public HiddenChatsPasscodeView(Context context, Runnable onAuthenticated) {
         super(context, LocaleController.getString(R.string.HiddenChatsUnlockTitle), LocaleController.getString(R.string.HiddenChatsUnlockDescription));
         this.onAuthenticated = onAuthenticated;
         setDelegate(view -> {
+            if (lastAttemptFingerprint) {
+                fingerprintAccepted = true;
+            } else {
+                passcodeAccepted = true;
+            }
             if (passcodeAccepted && fingerprintAccepted) {
                 authenticated = true;
                 if (this.onAuthenticated != null) {
@@ -38,11 +44,7 @@ public final class HiddenChatsPasscodeView extends PasscodeView {
 
     @Override
     protected void processDone(boolean fingerprint) {
-        if (fingerprint) {
-            fingerprintAccepted = true;
-        } else {
-            passcodeAccepted = true;
-        }
+        lastAttemptFingerprint = fingerprint;
         super.processDone(fingerprint);
     }
 
