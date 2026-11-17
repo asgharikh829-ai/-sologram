@@ -437,6 +437,9 @@ public class MessagePreviewParams {
         } else {
             this.forwardMessages = null;
         }
+        if (!hasQuotes) {
+            hideForwardQuote = false;
+        }
     }
 
     public int getForwardedMessagesCount() {
