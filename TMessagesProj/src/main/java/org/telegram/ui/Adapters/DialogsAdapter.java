@@ -40,6 +40,7 @@ import org.telegram.messenger.DialogObject;
 import org.telegram.messenger.FileLog;
 import org.telegram.messenger.LocaleController;
 import org.telegram.messenger.MessagesController;
+import org.telegram.messenger.HiddenChatsController;
 import org.telegram.messenger.R;
 import org.telegram.messenger.SharedConfig;
 import org.telegram.messenger.UserConfig;
@@ -1666,6 +1667,27 @@ public class DialogsAdapter extends RecyclerListView.SelectionAdapter implements
             if (array == null) {
                 array = new ArrayList<>();
             }
+        }
+
+        if (parentFragment != null && folderId == 0 && dialogsType == DialogsActivity.DIALOGS_TYPE_DEFAULT) {
+            boolean hiddenMode = parentFragment.isHiddenChatsMode();
+            ArrayList<TLRPC.Dialog> filteredDialogs = new ArrayList<>();
+            if (!hiddenMode || parentFragment.isHiddenChatsUnlocked()) {
+                for (int i = 0; i < array.size(); i++) {
+                    TLRPC.Dialog dialog = array.get(i);
+                    if (dialog instanceof TLRPC.TL_dialogFolder) {
+                        if (!hiddenMode) {
+                            filteredDialogs.add(dialog);
+                        }
+                        continue;
+                    }
+                    boolean hidden = HiddenChatsController.isHidden(currentAccount, dialog.id);
+                    if (hiddenMode == hidden) {
+                        filteredDialogs.add(dialog);
+                    }
+                }
+            }
+            array = filteredDialogs;
         }
 
         dialogsCount = array.size();
