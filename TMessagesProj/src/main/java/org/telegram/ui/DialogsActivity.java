@@ -3988,7 +3988,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             }
         };
 
-        int pagesCount = !hiddenChatsMode && folderId == 0 && communityId == 0 && (initialDialogsType == DIALOGS_TYPE_DEFAULT && !onlySelect || initialDialogsType == DIALOGS_TYPE_FORWARD) ? 2 : 1;
+        int pagesCount = folderId == 0 && communityId == 0 && (initialDialogsType == DIALOGS_TYPE_DEFAULT && !onlySelect || initialDialogsType == DIALOGS_TYPE_FORWARD) ? 2 : 1;
         viewPages = new ViewPage[pagesCount];
         for (int a = 0; a < pagesCount; a++) {
             final ViewPage viewPage = new ViewPage(context);
@@ -5585,6 +5585,9 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
 
         ViewCompat.setOnApplyWindowInsetsListener(fragmentView, this::onApplyWindowInsets);
         if (hiddenChatsMode) {
+            if (filterTabsView != null) {
+                filterTabsView.setVisibility(View.GONE);
+            }
             actionBar.setTitle(getString(R.string.HiddenChats));
             actionBar.setBackButtonImage(R.drawable.ic_ab_back);
             if (!HiddenChatsController.isSecureUnlockAvailable()) {
