@@ -6,11 +6,14 @@ import android.text.TextUtils;
 import org.telegram.messenger.support.fingerprint.FingerprintManagerCompat;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 public final class HiddenChatsController {
     private static final String KEY_PREFIX = "sologram_hidden_chats_";
+    private static final Map<Integer, HashSet<Long>> hiddenIdsCache = new HashMap<>();
 
     private HiddenChatsController() {
     }
@@ -19,41 +22,51 @@ public final class HiddenChatsController {
         return KEY_PREFIX + account;
     }
 
-    private static Set<String> getStoredIds(int account) {
-        SharedPreferences preferences = MessagesController.getGlobalMainSettings();
-        Set<String> stored = preferences.getStringSet(getKey(account), null);
-        return stored == null ? new HashSet<>() : new HashSet<>(stored);
+    private static HashSet<Long> getIds(int account) {
+        HashSet<Long> ids = hiddenIdsCache.get(account);
+        if (ids == null) {
+            ids = new HashSet<>();
+            SharedPreferences preferences = MessagesController.getGlobalMainSettings();
+            Set<String> stored = preferences.getStringSet(getKey(account), null);
+            if (stored != null) {
+                for (String value : stored) {
+                    try {
+                        ids.add(Long.parseLong(value));
+                    } catch (Exception ignore) {
+                    }
+                }
+            }
+            hiddenIdsCache.put(account, ids);
+        }
+        return ids;
     }
 
     public static synchronized boolean isHidden(int account, long dialogId) {
-        return getStoredIds(account).contains(Long.toString(dialogId));
+        return getIds(account).contains(dialogId);
     }
 
     public static synchronized void setHidden(int account, Iterable<Long> dialogIds, boolean hidden) {
-        Set<String> ids = getStoredIds(account);
+        HashSet<Long> ids = new HashSet<>(getIds(account));
         for (Long dialogId : dialogIds) {
             if (dialogId == null) {
                 continue;
             }
-            String value = Long.toString(dialogId);
             if (hidden) {
-                ids.add(value);
+                ids.add(dialogId);
             } else {
-                ids.remove(value);
+                ids.remove(dialogId);
             }
         }
-        MessagesController.getGlobalMainSettings().edit().putStringSet(getKey(account), ids).commit();
+        hiddenIdsCache.put(account, ids);
+        HashSet<String> stored = new HashSet<>();
+        for (Long dialogId : ids) {
+            stored.add(Long.toString(dialogId));
+        }
+        MessagesController.getGlobalMainSettings().edit().putStringSet(getKey(account), stored).commit();
     }
 
     public static synchronized ArrayList<Long> getHiddenDialogIds(int account) {
-        ArrayList<Long> result = new ArrayList<>();
-        for (String value : getStoredIds(account)) {
-            try {
-                result.add(Long.parseLong(value));
-            } catch (Exception ignore) {
-            }
-        }
-        return result;
+        return new ArrayList<>(getIds(account));
     }
 
     public static boolean isSecureUnlockAvailable() {
