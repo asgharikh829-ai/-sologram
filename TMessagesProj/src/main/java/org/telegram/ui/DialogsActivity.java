@@ -7208,8 +7208,8 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             hiddenChatsUnlocked = false;
             if (hiddenChatsPasscodeView != null) {
                 hiddenChatsPasscodeView.onPause();
-                if (contentView != null) {
-                    contentView.removeView(hiddenChatsPasscodeView);
+                if (fragmentView instanceof ContentView) {
+                    ((ContentView) fragmentView).removeView(hiddenChatsPasscodeView);
                 }
                 hiddenChatsPasscodeView = null;
             }
@@ -11696,7 +11696,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
     }
 
     private void showHiddenChatsAuthentication() {
-        if (!hiddenChatsMode || hiddenChatsUnlocked || hiddenChatsPasscodeView != null || contentView == null || getParentActivity() == null) {
+        if (!hiddenChatsMode || hiddenChatsUnlocked || hiddenChatsPasscodeView != null || !(fragmentView instanceof ContentView) || getParentActivity() == null) {
             return;
         }
         hiddenChatsPasscodeView = new HiddenChatsPasscodeView(getParentActivity(), () -> {
@@ -11707,7 +11707,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                 }
             }
         });
-        contentView.addView(hiddenChatsPasscodeView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
+        ((ContentView) fragmentView).addView(hiddenChatsPasscodeView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
         hiddenChatsPasscodeView.showForAuthentication();
     }
 
