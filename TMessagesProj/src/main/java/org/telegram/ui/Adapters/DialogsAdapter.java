@@ -1669,7 +1669,7 @@ public class DialogsAdapter extends RecyclerListView.SelectionAdapter implements
             }
         }
 
-        if (parentFragment != null && folderId == 0) {
+        if (parentFragment != null) {
             boolean hiddenMode = parentFragment.isHiddenChatsMode();
             ArrayList<TLRPC.Dialog> filteredDialogs = new ArrayList<>();
             if (!hiddenMode || parentFragment.isHiddenChatsUnlocked()) {
