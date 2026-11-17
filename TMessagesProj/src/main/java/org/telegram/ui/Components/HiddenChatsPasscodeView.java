@@ -49,6 +49,12 @@ public final class HiddenChatsPasscodeView extends PasscodeView {
     }
 
     public void showForAuthentication() {
+        if (authenticated) {
+            passcodeAccepted = false;
+            fingerprintAccepted = false;
+            authenticated = false;
+            lastAttemptFingerprint = false;
+        }
         onShow(false, true, 0, 0, null, null);
     }
 }
