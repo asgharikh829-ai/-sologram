@@ -51,6 +51,7 @@ import org.telegram.messenger.SharedConfig;
 import org.telegram.tgnet.ConnectionsManager;
 import org.telegram.tgnet.TLRPC;
 import org.telegram.tgnet.tl.TL_account;
+import org.telegram.tgnet.tl.TL_stories;
 import org.telegram.ui.ActionBar.ActionBar;
 import org.telegram.ui.ActionBar.AlertDialog;
 import org.telegram.ui.ActionBar.BackDrawable;
@@ -122,6 +123,7 @@ public class PrivacySettingsActivity extends BaseFragment implements Notificatio
     @Keep
     private int emailLoginRow;
     private int privacyShadowRow;
+    private int sologramGhostRow;
     private int groupsRow;
     private int groupsDetailRow;
     private int securitySectionRow;
@@ -422,6 +424,8 @@ public class PrivacySettingsActivity extends BaseFragment implements Notificatio
                 showDialog(builder.create());
             } else if (position == lastSeenRow) {
                 presentFragment(new PrivacyControlActivity(ContactsController.PRIVACY_RULES_TYPE_LASTSEEN));
+            } else if (position == sologramGhostRow) {
+                showSologramGhostModeDialog();
             } else if (position == phoneNumberRow) {
                 presentFragment(new PrivacyControlActivity(ContactsController.PRIVACY_RULES_TYPE_PHONE));
             } else if (position == groupsRow) {
@@ -721,6 +725,97 @@ public class PrivacySettingsActivity extends BaseFragment implements Notificatio
         updateRows(true);
     }
 
+    private void showSologramGhostModeDialog() {
+        android.content.SharedPreferences preferences = org.telegram.messenger.ApplicationLoader.applicationContext.getSharedPreferences("sologram_ghost_mode", 0);
+        boolean hideTyping = preferences.getBoolean("hide_typing_" + currentAccount, false);
+        TLRPC.GlobalPrivacySettings globalSettings = getContactsController().getGlobalPrivacySettings();
+        boolean hideReadMarks = globalSettings != null && globalSettings.hide_read_marks;
+        String[] items = new String[] {
+            "آنلاین و آخرین بازدید — تنظیمات تلگرام",
+            "تیک خواندن پیام‌ها — " + (hideReadMarks ? "روشن" : "خاموش"),
+            "وضعیت تایپ — " + (hideTyping ? "روشن" : "خاموش"),
+            "مخفی‌دیدن استوری — فعال‌سازی"
+        };
+        new AlertDialog.Builder(getParentActivity())
+            .setTitle("حالت روح Sologram")
+            .setItems(items, (dialog, which) -> {
+                if (which == 0) {
+                    presentFragment(new PrivacyControlActivity(ContactsController.PRIVACY_RULES_TYPE_LASTSEEN));
+                } else if (which == 1) {
+                    toggleSologramReadMarks();
+                } else if (which == 2) {
+                    boolean enabled = !preferences.getBoolean("hide_typing_" + currentAccount, false);
+                    preferences.edit().putBoolean("hide_typing_" + currentAccount, enabled).apply();
+                    Toast.makeText(getParentActivity(), enabled ? "وضعیت تایپ مخفی شد" : "ارسال وضعیت تایپ فعال شد", Toast.LENGTH_SHORT).show();
+                } else if (which == 3) {
+                    activateSologramStoryStealth();
+                }
+            })
+            .setNegativeButton(getString(R.string.Cancel), null)
+            .show();
+    }
+
+    private void toggleSologramReadMarks() {
+        TLRPC.GlobalPrivacySettings current = getContactsController().getGlobalPrivacySettings();
+        if (current == null) {
+            getContactsController().loadGlobalPrivacySetting();
+            Toast.makeText(getParentActivity(), "تنظیمات حریم خصوصی هنوز بارگذاری نشده؛ دوباره تلاش کن", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        boolean enabled = !current.hide_read_marks;
+        TL_account.setGlobalPrivacySettings request = new TL_account.setGlobalPrivacySettings();
+        request.settings = new TLRPC.TL_globalPrivacySettings();
+        request.settings.archive_and_mute_new_noncontact_peers = current.archive_and_mute_new_noncontact_peers;
+        request.settings.keep_archived_folders = current.keep_archived_folders;
+        request.settings.keep_archived_unmuted = current.keep_archived_unmuted;
+        request.settings.new_noncontact_peers_require_premium = current.new_noncontact_peers_require_premium;
+        request.settings.noncontact_peers_paid_stars = current.noncontact_peers_paid_stars;
+        request.settings.hide_read_marks = enabled;
+        request.settings.display_gifts_button = current.display_gifts_button;
+        getConnectionsManager().sendRequest(request, (response, error) -> AndroidUtilities.runOnUIThread(() -> {
+            if (error == null) {
+                current.hide_read_marks = enabled;
+                getNotificationCenter().postNotificationName(NotificationCenter.privacyRulesUpdated);
+                Toast.makeText(getParentActivity(), enabled ? "مخفی‌کردن تیک خواندن فعال شد" : "مخفی‌کردن تیک خواندن غیرفعال شد", Toast.LENGTH_SHORT).show();
+            } else {
+                Toast.makeText(getParentActivity(), "سرور تلگرام این تنظیم را نپذیرفت؛ ممکن است به Premium نیاز داشته باشد", Toast.LENGTH_LONG).show();
+            }
+        }));
+    }
+
+    private void activateSologramStoryStealth() {
+        if (!getUserConfig().isPremium()) {
+            Toast.makeText(getParentActivity(), "حالت مخفی استوری تلگرام به Premium نیاز دارد", Toast.LENGTH_LONG).show();
+            return;
+        }
+        org.telegram.messenger.StoriesController storiesController = getMessagesController().getStoriesController();
+        TL_stories.TL_storiesStealthMode current = storiesController.getStealthMode();
+        int now = getConnectionsManager().getCurrentTime();
+        if (current != null && now <= current.cooldown_until_date) {
+            Toast.makeText(getParentActivity(), "حالت مخفی استوری هنوز در دوره انتظار است", Toast.LENGTH_LONG).show();
+            return;
+        }
+        TL_stories.TL_stories_activateStealthMode request = new TL_stories.TL_stories_activateStealthMode();
+        request.future = true;
+        request.past = true;
+        TL_stories.TL_storiesStealthMode mode = new TL_stories.TL_storiesStealthMode();
+        mode.flags |= 1 | 2;
+        mode.cooldown_until_date = now + getMessagesController().stealthModeCooldown;
+        mode.active_until_date = now + getMessagesController().stealthModeFuture;
+        storiesController.setStealthMode(mode);
+        getConnectionsManager().sendRequest(request, (response, error) -> AndroidUtilities.runOnUIThread(() -> {
+            if (error == null) {
+                if (response instanceof TL_stories.TL_storiesStealthMode) {
+                    storiesController.setStealthMode((TL_stories.TL_storiesStealthMode) response);
+                }
+                Toast.makeText(getParentActivity(), "حالت مخفی استوری فعال شد", Toast.LENGTH_SHORT).show();
+            } else {
+                storiesController.setStealthMode(current);
+                Toast.makeText(getParentActivity(), "فعال‌سازی حالت مخفی استوری ناموفق بود", Toast.LENGTH_LONG).show();
+            }
+        }));
+    }
+
     public void updateRows(boolean notify) {
         passkeysRow = -1;
         rowCount = 0;
@@ -751,6 +846,7 @@ public class PrivacySettingsActivity extends BaseFragment implements Notificatio
         privacySectionRow = rowCount++;
         phoneNumberRow = rowCount++;
         lastSeenRow = rowCount++;
+        sologramGhostRow = rowCount++;
         profilePhotoRow = rowCount++;
         forwardsRow = rowCount++;
         callsRow = rowCount++;
@@ -1036,7 +1132,7 @@ public class PrivacySettingsActivity extends BaseFragment implements Notificatio
         @Override
         public boolean isEnabled(RecyclerView.ViewHolder holder) {
             int position = holder.getAdapterPosition();
-            return position == passcodeRow || position == passwordRow || position == passkeysRow || position == blockedRow || position == sessionsRow || position == secretWebpageRow || position == webSessionsRow ||
+            return position == sologramGhostRow || position == passcodeRow || position == passwordRow || position == passkeysRow || position == blockedRow || position == sessionsRow || position == secretWebpageRow || webSessionsRow == position ||
                     position == groupsRow && !getContactsController().getLoadingPrivacyInfo(ContactsController.PRIVACY_RULES_TYPE_INVITE) ||
                     position == lastSeenRow && !getContactsController().getLoadingPrivacyInfo(ContactsController.PRIVACY_RULES_TYPE_LASTSEEN) ||
                     position == callsRow && !getContactsController().getLoadingPrivacyInfo(ContactsController.PRIVACY_RULES_TYPE_CALLS) ||
@@ -1117,6 +1213,8 @@ public class PrivacySettingsActivity extends BaseFragment implements Notificatio
                             value = formatRulesString(getAccountInstance(), ContactsController.PRIVACY_RULES_TYPE_LASTSEEN);
                         }
                         textCell.setTextAndValue(getString("PrivacyLastSeen", R.string.PrivacyLastSeen), value, true);
+                    } else if (position == sologramGhostRow) {
+                        textCell.setTextAndValue("حالت روح Sologram", "تنظیمات جداگانه", true);
                     } else if (position == groupsRow) {
                         if (getContactsController().getLoadingPrivacyInfo(ContactsController.PRIVACY_RULES_TYPE_INVITE)) {
                             showLoading = true;
@@ -1405,7 +1503,7 @@ public class PrivacySettingsActivity extends BaseFragment implements Notificatio
 
         @Override
         public int getItemViewType(int position) {
-            if (position == passportRow || position == lastSeenRow || position == phoneNumberRow ||
+            if (position == passportRow || position == sologramGhostRow || position == lastSeenRow || position == phoneNumberRow ||
                     position == deleteAccountRow || position == webSessionsRow || position == groupsRow || position == paymentsClearRow ||
                     position == secretMapRow || position == contactsDeleteRow || position == botsBiometryRow) {
                 return 0;

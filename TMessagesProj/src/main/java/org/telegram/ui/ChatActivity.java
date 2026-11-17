@@ -7203,9 +7203,10 @@ public class ChatActivity extends BaseFragment implements
         sideControlsButtonsLayout = new ChatActivitySideControlsButtonsLayout(context, resourceProvider, blurredBackgroundButtonsColorProvider, glassBackgroundDrawableFactory);
         sideControlsButtonsLayout.setOnClickListener(this::onSideControlButtonOnClick);
         sideControlsButtonsLayout.setOnLongClickListener(this::onSideControlButtonOnLongClick);
+        sideControlsButtonsLayout.showButton(ChatActivitySideControlsButtonsLayout.BUTTON_FIRST_MESSAGE, true, false);
         {
             final int indexToAdd = chatActivityFadeView != null ? contentView.indexOfChild(chatActivityFadeView) : -1;
-            contentView.addView(sideControlsButtonsLayout, indexToAdd, LayoutHelper.createFrame(57, 300, Gravity.RIGHT | Gravity.BOTTOM));
+            contentView.addView(sideControlsButtonsLayout, indexToAdd, LayoutHelper.createFrame(57, 360, Gravity.RIGHT | Gravity.BOTTOM));
         }
 
         updateMessageListAccessibilityVisibility();
@@ -8259,6 +8260,9 @@ public class ChatActivity extends BaseFragment implements
                         scrollToMessageId(replyingMessageObject.getId(), 0, true, 0, true, 0);
                         return true;
                     }
+                } else if (fieldPanelShown == 3) {
+                    openForwardingPreview(MessagePreviewView.TAB_FORWARD);
+                    return true;
                 }
             }
             return false;
@@ -47574,6 +47578,9 @@ public class ChatActivity extends BaseFragment implements
                     scrollToMessageId(messageId, 0, false, 0, true, 0);
                 }
             });
+        } else if (buttonId == ChatActivitySideControlsButtonsLayout.BUTTON_FIRST_MESSAGE) {
+            wasManualScroll = true;
+            scrollToMessageId(1, 0, false, 0, true, 0);
         } else if (buttonId == ChatActivitySideControlsButtonsLayout.BUTTON_SEARCH_UP) {
             goToNextOrPrevSearchMessage(true);
         } else if (buttonId == ChatActivitySideControlsButtonsLayout.BUTTON_SEARCH_DOWN) {

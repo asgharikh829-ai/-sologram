@@ -65,22 +65,14 @@ jobs:
           restore-keys: |
             sologram-native-${{ runner.os }}-ndk27-cmake322-
 
-      - name: Create temporary Sologram signing key
+      - name: Configure stable Sologram signing key
         shell: bash
         run: |
-          PASSWORD="$(openssl rand -hex 24)"
-          keytool -genkeypair -noprompt \
-            -keystore "$RUNNER_TEMP/sologram-ci.jks" \
-            -storepass "$PASSWORD" \
-            -keypass "$PASSWORD" \
-            -alias sologram \
-            -dname "CN=Sologram CI, OU=Android, O=Sologram, C=US" \
-            -keyalg RSA -keysize 2048 -validity 10000
           {
-            echo "SLOGRAM_KEYSTORE_PATH=$RUNNER_TEMP/sologram-ci.jks"
-            echo "SLOGRAM_KEYSTORE_PASSWORD=$PASSWORD"
-            echo "SLOGRAM_KEY_ALIAS=sologram"
-            echo "SLOGRAM_KEY_PASSWORD=$PASSWORD"
+            echo "SLOGRAM_KEYSTORE_PATH=$GITHUB_WORKSPACE/TMessagesProj/config/release.keystore"
+            echo "SLOGRAM_KEYSTORE_PASSWORD=android"
+            echo "SLOGRAM_KEY_ALIAS=androidkey"
+            echo "SLOGRAM_KEY_PASSWORD=android"
           } >> "$GITHUB_ENV"
 
       - name: Build Sologram release APK
