@@ -2244,6 +2244,24 @@ public class SendMessagesHelper extends BaseController implements NotificationCe
         long monoForumPeerId,
         MessageSuggestionParams suggestionParams
     ) {
+        return sendMessage(messages, peer, forwardFromMyName, hideCaption, notify, scheduleDate, scheduleRepeatPeriod, replyToTopMsg, video_timestamp, payStars, monoForumPeerId, suggestionParams, false);
+    }
+
+    public int sendMessage(
+        ArrayList<MessageObject> messages,
+        final long peer,
+        boolean forwardFromMyName,
+        boolean hideCaption,
+        boolean notify,
+        int scheduleDate,
+        int scheduleRepeatPeriod,
+        MessageObject replyToTopMsg,
+        int video_timestamp,
+        long payStars,
+        long monoForumPeerId,
+        MessageSuggestionParams suggestionParams,
+        boolean dropForwardQuote
+    ) {
         if (messages == null || messages.isEmpty()) {
             return 0;
         }
@@ -2655,7 +2673,7 @@ public class SendMessagesHelper extends BaseController implements NotificationCe
                         newMsg.media_unread = true;
                     }
                 }
-                if (replyToTopMsg == null && suggestionParams == null && msgObj.messageOwner.reply_to != null) {
+                if (!dropForwardQuote && replyToTopMsg == null && suggestionParams == null && msgObj.messageOwner.reply_to != null) {
                     if (
                         !(msgObj.messageOwner.reply_to.reply_to_peer_id == null || MessageObject.peersEqual(msgObj.messageOwner.reply_to.reply_to_peer_id, msgObj.messageOwner.peer_id)) ||
                         ids != null && (msgObj.messageOwner.reply_to.flags & 16) != 0 && ids.contains(msgObj.messageOwner.reply_to.reply_to_msg_id)

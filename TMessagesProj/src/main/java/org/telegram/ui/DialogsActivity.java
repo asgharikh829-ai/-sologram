@@ -110,6 +110,7 @@ import org.telegram.messenger.DialogObject;
 import org.telegram.messenger.Emoji;
 import org.telegram.messenger.FileLoader;
 import org.telegram.messenger.FileLog;
+import org.telegram.messenger.HiddenChatsController;
 import org.telegram.messenger.FilesMigrationService;
 import org.telegram.messenger.ImageLoader;
 import org.telegram.messenger.ImageLocation;
@@ -225,6 +226,7 @@ import org.telegram.ui.Components.CubicBezierInterpolator;
 import org.telegram.ui.Components.DialogsItemAnimator;
 import org.telegram.ui.Components.FilterTabsView;
 import org.telegram.ui.Components.FiltersListBottomSheet;
+import org.telegram.ui.Components.HiddenChatsPasscodeView;
 import org.telegram.ui.Components.FlickerLoadingView;
 import org.telegram.ui.Components.FloatingDebug.FloatingDebugController;
 import org.telegram.ui.Components.FloatingDebug.FloatingDebugProvider;
@@ -502,6 +504,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
     private ValueAnimator contactsAlphaAnimator;
     private ViewPage[] viewPages;
     private ActionBarMenuItem passcodeItem;
+    private ActionBarMenuItem hiddenChatsItem;
     private ActionBarMenuItem downloadsItem;
     private DownloadProgressIcon downloadProgressIcon;
     private boolean downloadsItemVisible;
@@ -547,6 +550,9 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
     public long replyChannelDirect;
     public long forwardOriginalChannel;
     private int initialDialogsType;
+    private boolean hiddenChatsMode;
+    private boolean hiddenChatsUnlocked;
+    private HiddenChatsPasscodeView hiddenChatsPasscodeView;
 
     private boolean checkingImportDialog;
 
@@ -594,6 +600,8 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
     private ActionBarMenuSubItem readItem;
     @Nullable
     private ActionBarMenuSubItem blockItem;
+    @Nullable
+    private ActionBarMenuSubItem hideChatItem;
 
     private float additionalFloatingTranslation;
     private float floatingButtonPanOffset;
@@ -715,6 +723,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
     private final static int add_to_folder = 109;
     private final static int remove_from_folder = 110;
     private final static int community_ungroup = 111;
+    private final static int hide_chat = 112;
 
     private final static int ARCHIVE_ITEM_STATE_PINNED = 0;
     private final static int ARCHIVE_ITEM_STATE_SHOWED = 1;
@@ -2753,6 +2762,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
 
         if (arguments != null) {
             onlySelect = arguments.getBoolean("onlySelect", false);
+            hiddenChatsMode = arguments.getBoolean("hiddenChatsMode", false);
             canSelectTopics = arguments.getBoolean("canSelectTopics", false);
             cantSendToChannels = arguments.getBoolean("cantSendToChannels", false);
             initialDialogsType = arguments.getInt("dialogsType", DIALOGS_TYPE_DEFAULT);
@@ -3169,6 +3179,9 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             searchItem.setVisibility(View.GONE);
         }
         searchItem.setVisibility(View.GONE);
+        if (hiddenChatsMode) {
+            searchItem.setVisibility(View.GONE);
+        }
 
         if (!onlySelect && searchString == null && folderId == 0 && communityId == 0) {
             doneItem = new ActionBarMenuItem(context, null, getThemedColor(Theme.key_actionBarDefaultSelector), getThemedColor(Theme.key_actionBarDefaultIcon), true);
@@ -3192,6 +3205,10 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
 
             passcodeItem = menu.addItem(1, R.drawable.outline_header_lock_24);
             passcodeItem.setContentDescription(getString(R.string.AccDescrPasscodeLock));
+            if (!hiddenChatsMode) {
+                hiddenChatsItem = menu.addItem(4, R.drawable.msg_secret);
+                hiddenChatsItem.setContentDescription(getString(R.string.HiddenChats));
+            }
 
             downloadsItem = menu.addItem(3, new ColorDrawable(Color.TRANSPARENT));
             downloadsItem.addView(downloadProgressIcon = new DownloadProgressIcon(currentAccount, context));
@@ -3818,7 +3835,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                         } else {
                             hideActionMode(true);
                         }
-                    } else if (onlySelect || folderId != 0 || communityId != 0) {
+                    } else if (onlySelect || folderId != 0 || communityId != 0 || hiddenChatsMode) {
                         finishFragment();
                     }
                 } else if (id == 1) {
@@ -3835,6 +3852,8 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                 } else if (id == 3) {
                     showSearch(true, true, true);
                     fragmentSearchFieldWatcher.toggleSearch(true);
+                } else if (id == 4) {
+                    openHiddenChats();
                 } else if (id == 11) {
                     openAccountSelector(switchItem);
                 } else if (id == add_to_folder) {
@@ -3933,7 +3952,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                         undoView.showWithAction(did, UndoView.ACTION_REMOVED_FROM_FOLDER, neverShow.size(), filter, null, null);
                     }
                     hideActionMode(false);
-                } else if (id == pin || id == read || id == delete || id == clear || id == mute || id == archive || id == block || id == archive2 || id == pin2) {
+                } else if (id == pin || id == read || id == delete || id == clear || id == mute || id == archive || id == block || id == archive2 || id == pin2 || id == hide_chat) {
                     performSelectedDialogsAction(selectedDialogs, id, true, false);
                 }
             }
@@ -5565,6 +5584,27 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
         glassEngine.setPositionsMerger(new GlassPositionsMerger(Float.POSITIVE_INFINITY, dp(48)));
 
         ViewCompat.setOnApplyWindowInsetsListener(fragmentView, this::onApplyWindowInsets);
+        if (hiddenChatsMode) {
+            if (filterTabsView != null) {
+                filterTabsView.setVisibility(View.GONE);
+            }
+            actionBar.setTitle(getString(R.string.HiddenChats));
+            actionBar.setBackButtonImage(R.drawable.ic_ab_back);
+            if (!HiddenChatsController.isSecureUnlockAvailable()) {
+                showHiddenChatsSecurityDialog();
+            } else {
+                hiddenChatsPasscodeView = new HiddenChatsPasscodeView(context, () -> {
+                    hiddenChatsUnlocked = true;
+                    if (viewPages != null) {
+                        for (ViewPage page : viewPages) {
+                            page.updateList(true);
+                        }
+                    }
+                });
+                contentView.addView(hiddenChatsPasscodeView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
+                hiddenChatsPasscodeView.showForAuthentication();
+            }
+        }
         return fragmentView;
     }
 
@@ -6668,6 +6708,8 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
         ActionBarMenuItem otherItem = actionMode.addItemWithWidth(0, R.drawable.ic_ab_other, dp(48), LocaleController.getString(R.string.AccDescrMoreOptions));
         actionMode.addView(new View(getContext()), LayoutHelper.createLinear(5, LayoutHelper.MATCH_PARENT));
         archiveItem = otherItem.addSubItem(archive, R.drawable.msg_archive, LocaleController.getString(R.string.Archive));
+        hideChatItem = otherItem.addSubItem(hide_chat, R.drawable.msg_secret, getString(hiddenChatsMode ? R.string.UnhideChat : R.string.HideChat));
+        hideChatItem.setVisibility(!onlySelect && folderId == 0 && communityId == 0 ? View.VISIBLE : View.GONE);
         pin2Item = otherItem.addSubItem(pin2, R.drawable.msg_pin, LocaleController.getString(R.string.DialogPin));
         addToFolderItem = otherItem.addSubItem(add_to_folder, R.drawable.msg_addfolder, LocaleController.getString(R.string.FilterAddTo));
         removeFromFolderItem = otherItem.addSubItem(remove_from_folder, R.drawable.msg_removefolder, LocaleController.getString(R.string.FilterRemoveFrom));
@@ -6944,6 +6986,9 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
     @Override
     public void onResume() {
         super.onResume();
+        if (hiddenChatsMode && hiddenChatsPasscodeView != null && !hiddenChatsUnlocked) {
+            hiddenChatsPasscodeView.showForAuthentication();
+        }
         if (dialogStoriesCell != null) {
             dialogStoriesCell.onResume();
         }
@@ -7164,6 +7209,17 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
     @Override
     public void onPause() {
         super.onPause();
+        if (hiddenChatsMode) {
+            hiddenChatsUnlocked = false;
+            if (hiddenChatsPasscodeView != null) {
+                hiddenChatsPasscodeView.onPause();
+            }
+            if (viewPages != null) {
+                for (ViewPage page : viewPages) {
+                    page.updateList(true);
+                }
+            }
+        }
         if (storiesBulletin != null) {
             storiesBulletin.hide();
             storiesBulletin = null;
@@ -9087,6 +9143,20 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
         if (getParentActivity() == null) {
             return;
         }
+        if (action == hide_chat) {
+            if (!hiddenChatsMode && !HiddenChatsController.isSecureUnlockAvailable()) {
+                showHiddenChatsSecurityDialog();
+                return;
+            }
+            HiddenChatsController.setHidden(currentAccount, selectedDialogs, !hiddenChatsMode);
+            if (viewPages != null) {
+                for (ViewPage page : viewPages) {
+                    page.updateList(true);
+                }
+            }
+            hideActionMode(true);
+            return;
+        }
         MessagesController.DialogFilter filter;
         boolean containsFilter = (viewPages[0].dialogsType == 7 || viewPages[0].dialogsType == 8) && (!actionBar.isActionModeShowed() || actionBar.isActionModeShowed(null));
         if (containsFilter) {
@@ -10926,10 +10996,23 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
 
     @NonNull
     public ArrayList<TLRPC.Dialog> getDialogsArray(int currentAccount, int dialogsType, int folderId, boolean frozen) {
+        MessagesController messagesController = AccountInstance.getInstance(currentAccount).getMessagesController();
+        if (hiddenChatsMode) {
+            ArrayList<TLRPC.Dialog> hiddenDialogs = new ArrayList<>();
+            if (hiddenChatsUnlocked) {
+                ArrayList<TLRPC.Dialog> allDialogs = messagesController.getAllDialogs();
+                for (int i = 0; i < allDialogs.size(); i++) {
+                    TLRPC.Dialog dialog = allDialogs.get(i);
+                    if (!(dialog instanceof TLRPC.TL_dialogFolder) && HiddenChatsController.isHidden(currentAccount, dialog.id)) {
+                        hiddenDialogs.add(dialog);
+                    }
+                }
+            }
+            return hiddenDialogs;
+        }
         if (frozen && frozenDialogsList != null) {
             return frozenDialogsList;
         }
-        MessagesController messagesController = AccountInstance.getInstance(currentAccount).getMessagesController();
         if (dialogsType == DIALOGS_TYPE_DEFAULT) {
             return messagesController.getDialogs(folderId);
         } else if (dialogsType == DIALOGS_TYPE_WIDGET || dialogsType == DIALOGS_TYPE_IMPORT_HISTORY) {
@@ -11604,6 +11687,40 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
 
     public boolean isArchive() {
         return folderId == 1;
+    }
+
+    public boolean isHiddenChatsMode() {
+        return hiddenChatsMode;
+    }
+
+    public boolean isHiddenChatsUnlocked() {
+        return hiddenChatsUnlocked;
+    }
+
+    private void openHiddenChats() {
+        if (!HiddenChatsController.isSecureUnlockAvailable()) {
+            showHiddenChatsSecurityDialog();
+            return;
+        }
+        Bundle args = new Bundle();
+        args.putBoolean("hiddenChatsMode", true);
+        presentFragment(new DialogsActivity(args));
+    }
+
+    private void showHiddenChatsSecurityDialog() {
+        if (getParentActivity() == null) {
+            return;
+        }
+        AlertDialog.Builder builder = new AlertDialog.Builder(getParentActivity());
+        builder.setTitle(getString(R.string.HiddenChatsSecurityRequiredTitle));
+        builder.setMessage(getString(R.string.HiddenChatsSecurityRequired));
+        builder.setPositiveButton(getString(R.string.Passcode), (dialog, which) -> presentFragment(new PasscodeActivity(PasscodeActivity.TYPE_MANAGE_CODE_SETTINGS)));
+        builder.setNegativeButton(getString(R.string.Cancel), (dialog, which) -> {
+            if (hiddenChatsMode) {
+                finishFragment();
+            }
+        });
+        showDialog(builder.create());
     }
 
     public boolean isCommunity() {

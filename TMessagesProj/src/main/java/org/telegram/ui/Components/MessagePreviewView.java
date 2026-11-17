@@ -1004,17 +1004,6 @@ public class MessagePreviewView extends FrameLayout {
 
             } else if (tab == TAB_FORWARD && messagePreviewParams.forwardMessages != null) {
 
-                boolean _canHideSenderName = true;
-                if (!UserConfig.getInstance(currentAccount).isPremium()) {
-                    for (int i = 0; i < messagePreviewParams.forwardMessages.messages.size(); ++i) {
-                        if (messagePreviewParams.forwardMessages.messages.get(i).type == MessageObject.TYPE_ARTICLE) {
-                            _canHideSenderName = false;
-                            break;
-                        }
-                    }
-                }
-                final boolean canHideSenderName = _canHideSenderName;
-
                 ToggleButton sendersNameButton = new ToggleButton(
                     context,
                     R.raw.name_hide, messagePreviewParams.multipleUsers ? LocaleController.getString(R.string.ShowSenderNames) : LocaleController.getString(R.string.ShowSendersName),
@@ -1022,6 +1011,26 @@ public class MessagePreviewView extends FrameLayout {
                     resourcesProvider
                 );
                 menu.addView(sendersNameButton, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 48));
+
+                final ToggleButton quoteButton;
+                if (messagePreviewParams.hasQuotes) {
+                    quoteButton = new ToggleButton(
+                        context,
+                        R.raw.caption_hide, LocaleController.getString(R.string.KeepReplyQuote),
+                        R.raw.caption_show, LocaleController.getString(R.string.RemoveReplyQuote),
+                        resourcesProvider
+                    );
+                    quoteButton.setState(messagePreviewParams.hideForwardQuote, false);
+                    menu.addView(quoteButton, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 48));
+                    quoteButton.setOnClickListener(view -> {
+                        messagePreviewParams.hideForwardQuote = !messagePreviewParams.hideForwardQuote;
+                        quoteButton.setState(messagePreviewParams.hideForwardQuote, true);
+                        updateMessages();
+                        updateSubtitle(true);
+                    });
+                } else {
+                    quoteButton = null;
+                }
 
                 final ToggleButton captionButton;
                 if (messagePreviewParams.hasCaption) {
@@ -1061,18 +1070,6 @@ public class MessagePreviewView extends FrameLayout {
 
                 sendersNameButton.setState(messagePreviewParams.hideForwardSendersName, false);
                 sendersNameButton.setOnClickListener(view -> {
-                    if (!canHideSenderName) {
-                        BulletinFactory.of(MessagePreviewView.this, resourcesProvider)
-                            .createSimpleBulletin(R.raw.star_premium_2, replaceSingleTag(LocaleController.getString(R.string.ForwardHideSenderNamePremium), () -> {
-                                dismiss(false);
-                                AndroidUtilities.runOnUIThread(() -> {
-                                    if (!AndroidUtilities.isContextSafe(context)) return;
-                                    new PremiumFeatureBottomSheet(context, PremiumPreviewFragment.PREMIUM_FEATURE_RICH_EDITOR, true, resourcesProvider).show();
-                                });
-                            }))
-                            .show();
-                        return;
-                    }
                     messagePreviewParams.hideForwardSendersName = !messagePreviewParams.hideForwardSendersName;
                     returnSendersNames = false;
                     if (!messagePreviewParams.hideForwardSendersName) {

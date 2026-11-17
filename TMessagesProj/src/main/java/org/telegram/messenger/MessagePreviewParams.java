@@ -180,6 +180,8 @@ public class MessagePreviewParams {
 
     public boolean hideForwardSendersName;
     public boolean hideCaption;
+    public boolean hasQuotes;
+    public boolean hideForwardQuote;
     public boolean willSeeSenders;
 
     public boolean singleLink;
@@ -383,6 +385,7 @@ public class MessagePreviewParams {
     public void updateForward(ArrayList<MessageObject> forwardMessages, long dialogId) {
         hasCaption = false;
         hasSenders = false;
+        hasQuotes = false;
         isSecret = DialogObject.isEncryptedDialog(dialogId);
         multipleUsers = false;
 
@@ -392,6 +395,9 @@ public class MessagePreviewParams {
                 MessageObject messageObject = forwardMessages.get(i);
                 if (!TextUtils.isEmpty(messageObject.caption)) {
                     hasCaption = true;
+                }
+                if (messageObject.messageOwner.reply_to != null || messageObject.messageOwner.replyMessage != null || messageObject.replyMessageObject != null) {
+                    hasQuotes = true;
                 }
                 if (!isSecret) {
                     if (messageObject.messageOwner.fwd_from != null) {
@@ -430,6 +436,9 @@ public class MessagePreviewParams {
             }
         } else {
             this.forwardMessages = null;
+        }
+        if (!hasQuotes) {
+            hideForwardQuote = false;
         }
     }
 
@@ -474,6 +483,10 @@ public class MessagePreviewParams {
             message.replyMessage = messageObject.replyMessageObject.messageOwner;
         }
         message.reply_to = messageObject.messageOwner.reply_to;
+        if (msgtype == 0 && hideForwardQuote) {
+            message.reply_to = null;
+            message.replyMessage = null;
+        }
         message.invert_media = messageObject.messageOwner.invert_media;
 
         if (msgtype == 0) {

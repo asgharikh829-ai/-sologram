@@ -2787,6 +2787,15 @@
     <string name="HideSenderNames">Hide senders\’ names</string>
     <string name="ShowSendersName">Show sender\’s name</string>
     <string name="HideSendersName">Hide sender\’s name</string>
+    <string name="HiddenChats">Hidden Chats</string>
+    <string name="HideChat">Hide chat</string>
+    <string name="UnhideChat">Unhide chat</string>
+    <string name="HiddenChatsUnlockTitle">Unlock hidden chats</string>
+    <string name="HiddenChatsUnlockDescription">Enter your app passcode and verify your fingerprint to continue.</string>
+    <string name="KeepReplyQuote">Keep reply quote</string>
+    <string name="RemoveReplyQuote">Remove reply quote</string>
+    <string name="HiddenChatsSecurityRequiredTitle">Set up secure access</string>
+    <string name="HiddenChatsSecurityRequired">To use hidden chats, set an app passcode and enable fingerprint unlock in Settings &gt; Privacy and Security &gt; Passcode Lock.</string>
     <string name="ChatListSwipeGesture">Chat list swipe gesture</string>
     <string name="ChatListSwipeGestureInfo">Set up which action you want to perform each time you swipe to left in the chat list.</string>
     <string name="SwipeSettingsPin">Pin</string>
