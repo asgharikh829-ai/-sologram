@@ -10992,10 +10992,23 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
 
     @NonNull
     public ArrayList<TLRPC.Dialog> getDialogsArray(int currentAccount, int dialogsType, int folderId, boolean frozen) {
+        MessagesController messagesController = AccountInstance.getInstance(currentAccount).getMessagesController();
+        if (hiddenChatsMode) {
+            ArrayList<TLRPC.Dialog> hiddenDialogs = new ArrayList<>();
+            if (hiddenChatsUnlocked) {
+                ArrayList<TLRPC.Dialog> allDialogs = messagesController.getAllDialogs();
+                for (int i = 0; i < allDialogs.size(); i++) {
+                    TLRPC.Dialog dialog = allDialogs.get(i);
+                    if (!(dialog instanceof TLRPC.TL_dialogFolder) && HiddenChatsController.isHidden(currentAccount, dialog.id)) {
+                        hiddenDialogs.add(dialog);
+                    }
+                }
+            }
+            return hiddenDialogs;
+        }
         if (frozen && frozenDialogsList != null) {
             return frozenDialogsList;
         }
-        MessagesController messagesController = AccountInstance.getInstance(currentAccount).getMessagesController();
         if (dialogsType == DIALOGS_TYPE_DEFAULT) {
             return messagesController.getDialogs(folderId);
         } else if (dialogsType == DIALOGS_TYPE_WIDGET || dialogsType == DIALOGS_TYPE_IMPORT_HISTORY) {
