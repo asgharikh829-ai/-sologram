@@ -57,7 +57,7 @@ public final class HiddenChatsController {
     }
 
     public static boolean isSecureUnlockAvailable() {
-        if (TextUtils.isEmpty(SharedConfig.passcodeHash) || !SharedConfig.useFingerprintLock || !FingerprintController.isKeyReady()) {
+        if (ApplicationLoader.applicationContext == null || TextUtils.isEmpty(SharedConfig.passcodeHash) || !SharedConfig.useFingerprintLock || !FingerprintController.isKeyReady()) {
             return false;
         }
         try {
