@@ -1004,8 +1004,6 @@ public class MessagePreviewView extends FrameLayout {
 
             } else if (tab == TAB_FORWARD && messagePreviewParams.forwardMessages != null) {
 
-                final boolean canHideSenderName = true;
-
                 ToggleButton sendersNameButton = new ToggleButton(
                     context,
                     R.raw.name_hide, messagePreviewParams.multipleUsers ? LocaleController.getString(R.string.ShowSenderNames) : LocaleController.getString(R.string.ShowSendersName),
