@@ -35457,7 +35457,7 @@ public class ChatActivity extends BaseFragment implements
                         params.suggestionParams = messageSuggestionParams;
                         getSendMessagesHelper().sendMessage(params);
                     }
-                    getSendMessagesHelper().sendMessage(fmessages, did, false, false, notify, scheduleDate, scheduleRepeatPeriod, null, -1, price == null ? 0 : price, getSendMonoForumPeerId(), getSendMessageSuggestionParams());
+                    getSendMessagesHelper().sendMessage(fmessages, did, messagePreviewParams != null && messagePreviewParams.hideForwardSendersName, messagePreviewParams != null && messagePreviewParams.hideCaption, notify, scheduleDate, scheduleRepeatPeriod, null, -1, price == null ? 0 : price, getSendMonoForumPeerId(), getSendMessageSuggestionParams(), messagePreviewParams != null && messagePreviewParams.hideForwardQuote);
                 }
                 fragment.finishFragment();
                 createUndoView();
