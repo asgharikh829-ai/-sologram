@@ -9144,6 +9144,10 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             return;
         }
         if (action == hide_chat) {
+            if (!hiddenChatsMode && !HiddenChatsController.isSecureUnlockAvailable()) {
+                showHiddenChatsSecurityDialog();
+                return;
+            }
             HiddenChatsController.setHidden(currentAccount, selectedDialogs, !hiddenChatsMode);
             if (viewPages != null) {
                 for (ViewPage page : viewPages) {
