@@ -5593,16 +5593,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             if (!HiddenChatsController.isSecureUnlockAvailable()) {
                 showHiddenChatsSecurityDialog();
             } else {
-                hiddenChatsPasscodeView = new HiddenChatsPasscodeView(context, () -> {
-                    hiddenChatsUnlocked = true;
-                    if (viewPages != null) {
-                        for (ViewPage page : viewPages) {
-                            page.updateList(true);
-                        }
-                    }
-                });
-                contentView.addView(hiddenChatsPasscodeView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
-                hiddenChatsPasscodeView.showForAuthentication();
+                showHiddenChatsAuthentication();
             }
         }
         return fragmentView;
@@ -6986,8 +6977,12 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
     @Override
     public void onResume() {
         super.onResume();
-        if (hiddenChatsMode && hiddenChatsPasscodeView != null && !hiddenChatsUnlocked) {
-            hiddenChatsPasscodeView.showForAuthentication();
+        if (hiddenChatsMode && !hiddenChatsUnlocked) {
+            if (HiddenChatsController.isSecureUnlockAvailable()) {
+                showHiddenChatsAuthentication();
+            } else {
+                showHiddenChatsSecurityDialog();
+            }
         }
         if (dialogStoriesCell != null) {
             dialogStoriesCell.onResume();
@@ -7213,6 +7208,10 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             hiddenChatsUnlocked = false;
             if (hiddenChatsPasscodeView != null) {
                 hiddenChatsPasscodeView.onPause();
+                if (contentView != null) {
+                    contentView.removeView(hiddenChatsPasscodeView);
+                }
+                hiddenChatsPasscodeView = null;
             }
             if (viewPages != null) {
                 for (ViewPage page : viewPages) {
@@ -11000,10 +10999,9 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
         if (hiddenChatsMode) {
             ArrayList<TLRPC.Dialog> hiddenDialogs = new ArrayList<>();
             if (hiddenChatsUnlocked) {
-                ArrayList<TLRPC.Dialog> allDialogs = messagesController.getAllDialogs();
-                for (int i = 0; i < allDialogs.size(); i++) {
-                    TLRPC.Dialog dialog = allDialogs.get(i);
-                    if (!(dialog instanceof TLRPC.TL_dialogFolder) && HiddenChatsController.isHidden(currentAccount, dialog.id)) {
+                for (int i = 0; i < messagesController.dialogs_dict.size(); i++) {
+                    TLRPC.Dialog dialog = messagesController.dialogs_dict.valueAt(i);
+                    if (dialog != null && !(dialog instanceof TLRPC.TL_dialogFolder) && HiddenChatsController.isHidden(currentAccount, dialog.id)) {
                         hiddenDialogs.add(dialog);
                     }
                 }
@@ -11695,6 +11693,22 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
 
     public boolean isHiddenChatsUnlocked() {
         return hiddenChatsUnlocked;
+    }
+
+    private void showHiddenChatsAuthentication() {
+        if (!hiddenChatsMode || hiddenChatsUnlocked || hiddenChatsPasscodeView != null || contentView == null || getParentActivity() == null) {
+            return;
+        }
+        hiddenChatsPasscodeView = new HiddenChatsPasscodeView(getParentActivity(), () -> {
+            hiddenChatsUnlocked = true;
+            if (viewPages != null) {
+                for (ViewPage page : viewPages) {
+                    page.updateList(true);
+                }
+            }
+        });
+        contentView.addView(hiddenChatsPasscodeView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
+        hiddenChatsPasscodeView.showForAuthentication();
     }
 
     private void openHiddenChats() {
